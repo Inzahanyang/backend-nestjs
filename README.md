@@ -28,3 +28,4 @@
 - Repository
 - Relations
 - Auto-load entities
+- use TypeScript
