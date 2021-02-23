@@ -29,3 +29,24 @@
 - Relations
 - Auto-load entities
 - use TypeScript
+
+### Modeling
+
+#### User
+
+_Entity_
+
+- id
+- createdAt
+- updatedAt
+- email
+- password
+- role(client | owner | delivery)
+
+_CRUD_
+
+- Create Account
+- Log In
+- See Profile
+- Edit Profile
+- Verify Email
