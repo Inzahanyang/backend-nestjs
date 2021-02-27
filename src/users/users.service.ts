@@ -8,6 +8,8 @@ import {
 import { LoginInput, LoginOutput } from './dtos/login.dto';
 import { User } from './entities/user.entity';
 import { JwtService } from 'src/jwt/jwt.service';
+import { UserProfileInput, UserProfileOutput } from './dtos/user-profile.dto';
+import { EditProfileInput, EditProfileOutput } from './dtos/edit-profile.dto';
 
 @Injectable()
 export class UsersService {
@@ -61,7 +63,30 @@ export class UsersService {
     }
   }
 
-  async findById(id): Promise<User> {
-    return this.users.findOne({ id });
+  async findById(id: number) {
+    const user = await this.users.findOne({ id });
+    return user;
+  }
+
+  async editProfile(
+    userId: number,
+    { email, password }: EditProfileInput,
+  ): Promise<EditProfileOutput> {
+    try {
+      const user = await this.users.findOne(userId);
+      if (email) {
+        user.email = email;
+      }
+      if (password) {
+        user.password = password;
+      }
+      await this.users.save(user);
+      return { ok: true };
+    } catch (e) {
+      return {
+        ok: false,
+        error: "Couldn't edit profile",
+      };
+    }
   }
 }
