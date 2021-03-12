@@ -25,7 +25,9 @@
 
 ## TypeORM
 
+- Entity
 - Repository
 - Relations
 - Auto-load entities
 - TypeScript
+- Select:false , onDelete:"CASACADE"

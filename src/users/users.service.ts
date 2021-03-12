@@ -8,13 +8,16 @@ import {
 import { LoginInput, LoginOutput } from './dtos/login.dto';
 import { User } from './entities/user.entity';
 import { JwtService } from 'src/jwt/jwt.service';
-import { UserProfileInput, UserProfileOutput } from './dtos/user-profile.dto';
 import { EditProfileInput, EditProfileOutput } from './dtos/edit-profile.dto';
+import { Verification } from './entities/verification.entity';
+import { VerifyEmailOutput } from './dtos/verify-email.dto';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
+    @InjectRepository(Verification)
+    private readonly verifications: Repository<Verification>,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -31,7 +34,10 @@ export class UsersService {
           error: "'There is a user with that email already';",
         };
       }
-      await this.users.save(this.users.create({ email, password, role }));
+      const user = await this.users.save(
+        this.users.create({ email, password, role }),
+      );
+      await this.verifications.save(this.verifications.create({ user }));
       return {
         ok: true,
       };
@@ -45,7 +51,10 @@ export class UsersService {
 
   async login({ email, password }: LoginInput): Promise<LoginOutput> {
     try {
-      const user = await this.users.findOne({ email });
+      const user = await this.users.findOne(
+        { email },
+        { select: ['password', 'id'] },
+      );
       if (!user) {
         return { ok: false, error: 'User not found' };
       }
@@ -56,6 +65,7 @@ export class UsersService {
       const token = this.jwtService.sign(user.id);
       return { ok: true, token };
     } catch (e) {
+      console.log(e);
       return {
         ok: false,
         error: "Couldn't login",
@@ -76,6 +86,8 @@ export class UsersService {
       const user = await this.users.findOne(userId);
       if (email) {
         user.email = email;
+        user.verified = false;
+        await this.verifications.save(this.verifications.create({ user }));
       }
       if (password) {
         user.password = password;
@@ -86,6 +98,29 @@ export class UsersService {
       return {
         ok: false,
         error: "Couldn't edit profile",
+      };
+    }
+  }
+
+  async verifyEmail(code: string): Promise<VerifyEmailOutput> {
+    try {
+      const verification = await this.verifications.findOne(
+        { code },
+        { relations: ['user'] },
+      );
+      if (verification) {
+        verification.user.verified = true;
+        this.verifications.delete(verification.id);
+        this.users.save(verification.user);
+      }
+      return {
+        ok: true,
+      };
+    } catch (e) {
+      console.log(e);
+      return {
+        ok: false,
+        error: "Couldn't verify email",
       };
     }
   }
