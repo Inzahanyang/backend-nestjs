@@ -8,7 +8,7 @@ import {
 import { CoreEntity } from 'src/common/entities/core.entity';
 import { BeforeInsert, BeforeUpdate, Column, Entity } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { IsEmail, IsEnum } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsString } from 'class-validator';
 
 export enum UserRole {
   Client,
@@ -23,11 +23,13 @@ registerEnumType(UserRole, { name: 'UserRole' });
 @Entity()
 export class User extends CoreEntity {
   @Field(type => String)
-  @Column()
+  @Column({ unique: true })
   @IsEmail()
   email: string;
+
   @Field(type => String)
   @Column({ select: false })
+  @IsString()
   password: string;
 
   @Field(type => UserRole)
@@ -37,6 +39,7 @@ export class User extends CoreEntity {
 
   @Field(type => Boolean)
   @Column({ default: false })
+  @IsBoolean()
   verified: boolean;
 
   @BeforeInsert()

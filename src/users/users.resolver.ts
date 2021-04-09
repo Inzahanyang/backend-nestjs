@@ -8,6 +8,7 @@ import {
 } from './dtos/create-account.dto';
 import { EditProfileInput, EditProfileOutput } from './dtos/edit-profile.dto';
 import { LoginInput, LoginOutput } from './dtos/login.dto';
+import { UserProfileInput, UserProfileOutput } from './dtos/user-profile.dto';
 import { VerifyEmailInput, VerifyEmailOutput } from './dtos/verify-email.dto';
 import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
@@ -22,9 +23,11 @@ export class UsersResolver {
   }
 
   @UseGuards(AuthGuard)
-  @Query(returns => User)
-  userProfile(@Args('id') id: number) {
-    return this.usersService.findById(id);
+  @Query(returns => UserProfileOutput)
+  async userProfile(
+    @Args() userProfileInput: UserProfileInput,
+  ): Promise<UserProfileOutput> {
+    return this.usersService.findById(userProfileInput.id);
   }
 
   @Mutation(returns => CreateAccountOutput)
@@ -39,8 +42,8 @@ export class UsersResolver {
     return this.usersService.login(loginInput);
   }
 
-  @UseGuards(AuthGuard)
   @Mutation(returns => EditProfileOutput)
+  @UseGuards(AuthGuard)
   editProfile(
     @AuthUser() authUser: User,
     @Args('input') editProfileInput: EditProfileInput,

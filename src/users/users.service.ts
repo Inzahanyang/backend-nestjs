@@ -11,6 +11,8 @@ import { JwtService } from 'src/jwt/jwt.service';
 import { EditProfileInput, EditProfileOutput } from './dtos/edit-profile.dto';
 import { Verification } from './entities/verification.entity';
 import { VerifyEmailOutput } from './dtos/verify-email.dto';
+import { MailService } from 'src/mail/mail.service';
+import { UserProfileOutput } from './dtos/user-profile.dto';
 
 @Injectable()
 export class UsersService {
@@ -19,6 +21,7 @@ export class UsersService {
     @InjectRepository(Verification)
     private readonly verifications: Repository<Verification>,
     private readonly jwtService: JwtService,
+    private readonly mailService: MailService,
   ) {}
 
   async createAccount({
@@ -34,10 +37,17 @@ export class UsersService {
           error: "'There is a user with that email already';",
         };
       }
+
       const user = await this.users.save(
         this.users.create({ email, password, role }),
       );
-      await this.verifications.save(this.verifications.create({ user }));
+
+      const verification = await this.verifications.save(
+        this.verifications.create({ user }),
+      );
+
+      this.mailService.sendVerificationEmail(user.email, verification.code);
+
       return {
         ok: true,
       };
@@ -73,9 +83,16 @@ export class UsersService {
     }
   }
 
-  async findById(id: number) {
-    const user = await this.users.findOne({ id });
-    return user;
+  async findById(id: number): Promise<UserProfileOutput> {
+    try {
+      const user = await this.users.findOneOrFail({ id });
+      return {
+        ok: true,
+        user,
+      };
+    } catch (e) {
+      return { ok: false, error: 'User not found' };
+    }
   }
 
   async editProfile(
@@ -87,18 +104,22 @@ export class UsersService {
       if (email) {
         user.email = email;
         user.verified = false;
-        await this.verifications.save(this.verifications.create({ user }));
+        await this.verifications.delete({ user: { id: user.id } });
+        const verification = await this.verifications.save(
+          this.verifications.create({ user }),
+        );
+        this.mailService.sendVerificationEmail(user.email, verification.code);
       }
       if (password) {
         user.password = password;
       }
       await this.users.save(user);
-      return { ok: true };
-    } catch (e) {
       return {
-        ok: false,
-        error: "Couldn't edit profile",
+        ok: true,
       };
+    } catch (e) {
+      console.log(e);
+      return { ok: false, error: 'Could not update profile.' };
     }
   }
 
